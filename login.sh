@@ -67,8 +67,8 @@ then
     exit 1
 fi
 
-echo "Logged in..."
-echo "Press Ctrl-C to logout..."
+echo "Logged in."
+echo "Press Ctrl-C to logout."
 
 # Extract the keepalive URL from the HTML file (hack)
 ka_url=$(cat $html_file | grep keepalive)
@@ -88,10 +88,10 @@ do_logout() {
     http_code=$(curl -kso /dev/null -w "%{http_code}" $logout_url)
     if [ "$http_code" -ne 200 ]
     then
-        echo "Error"
+        echo "Error logging out."
     else
         echo
-        echo "Logged out"
+        echo "Logged out."
     fi
     exit 0
 }
@@ -111,7 +111,8 @@ do
     then
         echo -n "."
     else
-        echo "Error"
+        echo "Error sending keepalive signal."
+        do_logout
         exit 1
     fi
 done
