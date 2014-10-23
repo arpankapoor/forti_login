@@ -2,9 +2,10 @@ Installation
 ------------
     git clone https://github.com/arpankapoor/forti-login.git
     cd forti-login
-    chmod +x login.sh
+    chmod u+rx login.sh
+    cp login.sh /usr/local/bin/forti-login
 
 Usage
 -----
-    ./login.sh <username> <password>
+    forti-login <username> <password>
 (Both arguments are optional)
