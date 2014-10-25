@@ -60,7 +60,7 @@ curl -kso $html_file \
     $post_url
 
 # Do we have the logout button?
-lgout=$(cat $html_file | grep logout)
+lgout=$(grep logout $html_file)
 if [[ -z $lgout ]]
 then
     echo 'Authentication failed.'
@@ -71,7 +71,7 @@ echo 'Logged in.'
 echo 'Press Ctrl-C to logout.'
 
 # Extract the keepalive URL from the HTML file (hack)
-ka_url=$(cat $html_file | grep keepalive)
+ka_url=$(grep keepalive $html_file)
 ka_url=${ka_url// /}                # Remove whitespace
 ka_url=${ka_url//location.href=\"/}
 ka_url=${ka_url%\";}
