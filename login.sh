@@ -4,22 +4,22 @@ REQ_URL=www.google.com
 
 # Check if we can access Google
 ping -qc 1 -W 2 $REQ_URL &> /dev/null
-if [ $? -eq 0 ]
+if [[ $? -eq 0 ]]
 then
-    echo "You haz the internetz"
+    echo 'You haz the internetz'
     exit 1
 fi
 
 # Get username & password
-if [ $# -eq 0 ]
+if [[ $# -eq 0 ]]
 then
-    read -p "Username: " USERNAME
-    read -sp "Password: " PASSWORD
+    read -p 'Username: ' USERNAME
+    read -sp 'Password: ' PASSWORD
     echo
-elif [ $# -eq 1 ]
+elif [[ $# -eq 1 ]]
 then
     USERNAME=$1
-    read -sp "Password: " PASSWORD
+    read -sp 'Password: ' PASSWORD
     echo
 else
     USERNAME=$1
@@ -28,18 +28,18 @@ fi
 
 # Check if we have curl
 command -v curl &> /dev/null
-if [ $? -ne 0 ]
+if [[ $? -ne 0 ]]
 then
-    echo "Please install curl."
-    echo "Quitting..."
+    echo 'Please install curl.'
+    echo 'Quitting...'
     exit 1
 fi
 
 # Check if we get redirected
 http_code=$(curl -kso /dev/null -w "%{http_code}" $REQ_URL)
-if [ $http_code -ne 303 ]
+if [[ $http_code -ne 303 ]]
 then
-    echo "No redirect to Firewall AUTH"
+    echo 'No redirect to Firewall AUTH'
     exit 1
 fi
 
@@ -61,14 +61,14 @@ curl -kso $html_file \
 
 # Do we have the logout button?
 lgout=$(cat $html_file | grep logout)
-if [ "$lgout" == "" ]
+if [[ -z $lgout ]]
 then
-    echo "Authentication failed."
+    echo 'Authentication failed.'
     exit 1
 fi
 
-echo "Logged in."
-echo "Press Ctrl-C to logout."
+echo 'Logged in.'
+echo 'Press Ctrl-C to logout.'
 
 # Extract the keepalive URL from the HTML file (hack)
 ka_url=$(cat $html_file | grep keepalive)
@@ -86,12 +86,12 @@ rm -f $html_file
 do_logout() {
     logout_url=${ka_url//keepalive/logout}
     http_code=$(curl -kso /dev/null -w "%{http_code}" $logout_url)
-    if [ "$http_code" -ne 200 ]
+    if [[ $http_code -ne 200 ]]
     then
-        echo "Error logging out."
+        echo 'Error logging out.'
     else
         echo
-        echo "Logged out."
+        echo 'Logged out.'
     fi
     exit 0
 }
@@ -107,11 +107,11 @@ do
 
     # Send GET to the keepalive URL
     http_code=$(curl -kso /dev/null -w "%{http_code}" $ka_url)
-    if [ $http_code -eq 200 ]
+    if [[ $http_code -eq 200 ]]
     then
-        echo -n "."
+        echo -n '.'
     else
-        echo "Error sending keepalive signal."
+        echo 'Error sending keepalive signal.'
         do_logout
         exit 1
     fi
