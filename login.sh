@@ -64,6 +64,7 @@ lgout=$(grep logout $html_file)
 if [[ -z $lgout ]]
 then
     echo 'Authentication failed.'
+    rm -f $html_file
     exit 1
 fi
 
