@@ -104,7 +104,7 @@ trap do_logout SIGINT SIGTERM
 while true
 do
     n=295
-    sleep $n
+    sleep $n & wait
 
     # Send GET to the keepalive URL
     http_code=$(curl -kso /dev/null -w "%{http_code}" $ka_url)
