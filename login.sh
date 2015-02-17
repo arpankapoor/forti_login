@@ -2,45 +2,38 @@
 
 REQ_URL=www.google.com
 
+fail() {
+	printf "$@\n" 1>&2
+	exit 1
+}
+
 # Check if we can access Google
-ping -qc 1 -W 2 $REQ_URL &> /dev/null
-if [[ $? -eq 0 ]]
-then
-    echo 'You haz the internetz'
-    exit 1
-fi
+ping -qc 1 -W 2 $REQ_URL &> /dev/null && fail "You haz the internetz"
 
 # Get username & password
 if [[ $# -eq 0 ]]
 then
-    read -p 'Username: ' USERNAME
-    read -sp 'Password: ' PASSWORD
-    echo
+	read -p 'Username: ' USERNAME
+	read -sp 'Password: ' PASSWORD
+	echo
 elif [[ $# -eq 1 ]]
 then
-    USERNAME=$1
-    read -sp 'Password: ' PASSWORD
-    echo
+	USERNAME=$1
+	read -sp 'Password: ' PASSWORD
+	echo
 else
-    USERNAME=$1
-    PASSWORD=$2
+	USERNAME=$1
+	PASSWORD=$2
 fi
 
 # Check if we have curl
-command -v curl &> /dev/null
-if [[ $? -ne 0 ]]
-then
-    echo 'Please install curl.'
-    echo 'Quitting...'
-    exit 1
-fi
+command -v curl &> /dev/null || fail "Please install curl.\nQuitting..."
 
 # Check if we get redirected
 http_code=$(curl -kso /dev/null -w "%{http_code}" $REQ_URL)
 if [[ $http_code -ne 303 ]]
 then
-    echo 'No redirect to Firewall AUTH'
-    exit 1
+	fail "No redirect to Firewall AUTH"
 fi
 
 # The URL we get redirected to
@@ -53,19 +46,18 @@ magic=${array[1]}
 
 html_file=$(mktemp -q)
 curl -kso $html_file \
-    --data-urlencode 4Tredir=$REQ_URL \
-    --data-urlencode magic=$magic \
-    --data-urlencode username=$USERNAME \
-    --data-urlencode password=$PASSWORD \
-    $post_url
+	--data-urlencode 4Tredir=$REQ_URL \
+	--data-urlencode magic=$magic \
+	--data-urlencode username=$USERNAME \
+	--data-urlencode password=$PASSWORD \
+	$post_url
 
 # Do we have the logout button?
 lgout=$(grep logout $html_file)
 if [[ -z $lgout ]]
 then
-    echo 'Authentication failed.'
-    rm -f $html_file
-    exit 1
+	rm -f $html_file
+	fail "Authentication failed."
 fi
 
 echo 'Logged in.'
@@ -85,16 +77,16 @@ ka_url=${ka_url%\";}
 rm -f $html_file
 
 do_logout() {
-    logout_url=${ka_url//keepalive/logout}
-    http_code=$(curl -kso /dev/null -w "%{http_code}" $logout_url)
-    if [[ $http_code -ne 200 ]]
-    then
-        echo 'Error logging out.'
-    else
-        echo
-        echo 'Logged out.'
-    fi
-    exit 0
+	logout_url=${ka_url//keepalive/logout}
+	http_code=$(curl -kso /dev/null -w "%{http_code}" $logout_url)
+	if [[ $http_code -ne 200 ]]
+	then
+		fail "Error logging out."
+	else
+		echo
+		echo 'Logged out.'
+		exit 0
+	fi
 }
 
 # Logout on interruption
@@ -103,17 +95,16 @@ trap do_logout SIGINT SIGTERM
 # KEEP ALIVE !!
 while true
 do
-    n=295
-    sleep $n & wait
+	n=295
+	sleep $n & wait
 
-    # Send GET to the keepalive URL
-    http_code=$(curl -kso /dev/null -w "%{http_code}" $ka_url)
-    if [[ $http_code -eq 200 ]]
-    then
-        echo -n '.'
-    else
-        echo 'Error sending keepalive signal.'
-        do_logout
-        exit 1
-    fi
+	# Send GET to the keepalive URL
+	http_code=$(curl -kso /dev/null -w "%{http_code}" $ka_url)
+	if [[ $http_code -eq 200 ]]
+	then
+		echo -n '.'
+	else
+		echo 'Error sending keepalive signal.' 1>&2
+		do_logout
+	fi
 done
