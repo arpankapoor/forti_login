@@ -95,7 +95,7 @@ trap do_logout SIGINT SIGTERM
 # KEEP ALIVE !!
 while true
 do
-	n=295
+	n=9595
 	sleep $n & wait
 
 	# Send GET to the keepalive URL
