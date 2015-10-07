@@ -1,0 +1,11 @@
+[Unit]
+Description=forti-login
+
+[Service]
+ExecStart=/usr/local/bin/forti-login <myusername> <mypassword>
+ExecStop=/usr/bin/killall forti-login
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
