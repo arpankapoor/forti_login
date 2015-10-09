@@ -87,7 +87,8 @@ keepalive() {
 				"Authentication refresh in" \
 				"seconds."
 		else
-			sleep "$countdown" & wait
+			sleep "$countdown" &
+			wait $!
 		fi
 	done
 }
@@ -131,8 +132,8 @@ main() {
 
 	KEEPALIVE_URL=$(remove_substr "$html" "*location.href=\"" "\";*")
 
-	# Logout on interruption
-	trap "do_logout; exit 0" SIGINT SIGTERM
+	# Logout on exit
+	trap "do_logout" EXIT
 
 	keepalive
 }
