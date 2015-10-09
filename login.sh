@@ -1,110 +1,137 @@
 #!/bin/bash
 
-REQ_URL=www.google.com
+# Enable curl alias
+alias curl="curl --insecure --silent --max-time 30"
+shopt -s expand_aliases
 
+USERNAME=""
+PASSWORD=""
+KEEPALIVE_URL=""
+
+cmd_available() {
+	command -v $1 &> /dev/null
+}
+
+# Print arguments to stderr and exit
 fail() {
-	printf "$@\n" 1>&2
+	printf "$*\n" 1>&2
 	exit 1
 }
 
-# Check if we can access Google
-ping -qc 1 -W 2 $REQ_URL &> /dev/null && fail "You haz the internetz"
+get_effective_url() {
+	curl --location --output /dev/null --write-out "%{url_effective}" $1
+}
 
-# Get username & password
-if [[ $# -eq 0 ]]
-then
-	read -p 'Username: ' USERNAME
-	read -sp 'Password: ' PASSWORD
-	echo
-elif [[ $# -eq 1 ]]
-then
-	USERNAME=$1
-	read -sp 'Password: ' PASSWORD
-	echo
-else
-	USERNAME=$1
-	PASSWORD=$2
-fi
+# Remove $2 from front and $3 from back of the string $1
+remove_substr() {
+	local tmp=${1##$2}
+	echo ${tmp%%$3}
+}
 
-# Check if we have curl
-command -v curl &> /dev/null || fail "Please install curl.\nQuitting..."
-
-# Check if we get redirected
-http_code=$(curl -kso /dev/null -w "%{http_code}" $REQ_URL)
-if [[ $http_code -ne 303 ]]
-then
-	fail "No redirect to Firewall AUTH"
-fi
-
-# The URL we get redirected to
-auth_url=$(curl -Lkso /dev/null -w "%{url_effective}" $REQ_URL)
-
-# Split the URL into two parts
-array=(${auth_url//fgtauth?/ })
-post_url=${array[0]}
-magic=${array[1]}
-
-html_file=$(mktemp -q)
-curl -kso $html_file \
-	--data-urlencode 4Tredir=$REQ_URL \
-	--data-urlencode magic=$magic \
-	--data-urlencode username=$USERNAME \
-	--data-urlencode password=$PASSWORD \
-	$post_url
-
-# Do we have the logout button?
-lgout=$(grep logout $html_file)
-if [[ -z $lgout ]]
-then
-	rm -f $html_file
-	fail "Authentication failed."
-fi
-
-echo 'Logged in.'
-echo 'Press Ctrl-C to logout.'
-
-# Extract the keepalive URL from the HTML file (hack)
-ka_url=$(grep keepalive $html_file)
-ka_url=${ka_url// /}                # Remove whitespace
-ka_url=${ka_url//location.href=\"/}
-ka_url=${ka_url%\";}
-
-# Display the logout URL just in case
-# logout_url=${ka_url//keepalive/logout}
-# echo "Logout: $logout_url"
-
-# Delete HTML file
-rm -f $html_file
-
-do_logout() {
-	logout_url=${ka_url//keepalive/logout}
-	http_code=$(curl -kso /dev/null -w "%{http_code}" $logout_url)
-	if [[ $http_code -ne 200 ]]
+# Get username and password from parameters/stdin
+get_credentials() {
+	if [[ $# -eq 0 ]]
 	then
-		fail "Error logging out."
+		read -r -p "Username: " USERNAME
+		read -rst 30 -p "Password: " PASSWORD && echo ""
+	elif [[ $# -eq 1 ]]
+	then
+		USERNAME=$1
+		read -rst 30 -p "Password: " PASSWORD && echo ""
 	else
-		echo
-		echo 'Logged out.'
-		exit 0
+		USERNAME=$1
+		PASSWORD=$2
 	fi
 }
 
-# Logout on interruption
-trap do_logout SIGINT SIGTERM
+# Display a countdown for $1 seconds with $2 prefixed and $3 suffixed
+display_countdown() {
+	local secs=$1
+	while [[ $secs -gt 0 ]]
+	do
+		echo -ne "\033[0K\r$2 $secs $3"
+		sleep 1
+		: $((--secs))
+	done
+}
 
-# KEEP ALIVE !!
-while true
-do
-	n=2395
-	sleep $n & wait
-
-	# Send GET to the keepalive URL
-	http_code=$(curl -kso /dev/null -w "%{http_code}" $ka_url)
-	if [[ $http_code -eq 200 ]]
+do_logout() {
+	local logout_url=${KEEPALIVE_URL/keepalive/logout}
+	if ! curl --output /dev/null "$logout_url"
 	then
-		echo -n '.'
+		fail "Error logging out."
 	else
-		echo 'Error sending keepalive signal.' 1>&2
-		do_logout
+		echo "" && echo "Logged out."
 	fi
-done
+}
+
+keepalive() {
+	while true
+	do
+		local html=$(curl --output - "$KEEPALIVE_URL")
+		if [[ $? -ne 0 ]]
+		then
+			fail "Error in authentication refresh."
+		fi
+
+		local countdown=$(remove_substr "$html" \
+						"*var countDownTime=" \
+						" + 1;*")
+		countdown=$((countdown - 60))
+
+		# Display a countdown if stdout is a terminal
+		if [[ -t 1 ]]
+		then
+			display_countdown "$countdown" \
+				"Authentication refresh in" \
+				"seconds."
+		else
+			sleep "$countdown" & wait
+		fi
+	done
+}
+
+main() {
+	# Do we have curl?
+	cmd_available "curl" || fail "Please install curl."
+
+	local google="www.google.com"
+	local effective_url=$(get_effective_url "$google")
+
+	# Did we get redirected to the authentication page?
+	echo "$effective_url" | grep -q "fgtauth" || \
+		fail "Did NOT get redirected to authentication page."
+
+	# Get login credentials
+	get_credentials "$@" || fail "\nFailed to get login credentials."
+
+	# Extract base URL and magic parameter
+	local base_url=$(remove_substr "$effective_url" "" "fgtauth*")
+	local magic=$(remove_substr "$effective_url" "*fgtauth\?" "" )
+
+	# POST form data to base_url
+	local html=$(curl --output - \
+			--data-urlencode 4Tredir="$google" \
+			--data-urlencode magic="$magic" \
+			--data-urlencode username="$USERNAME" \
+			--data-urlencode password="$PASSWORD" \
+			"$base_url")
+
+	# Failed?
+	echo "$html" | grep -qi "failed" && fail "Authentication failed."
+
+	echo "Logged in."
+	if [[ -t 1 ]]
+	then
+		echo "Press Ctrl-C to logout."
+	fi
+
+	KEEPALIVE_URL=$(remove_substr "$html" "*location.href=\"" "\";*")
+
+	# Logout on interruption
+	trap "do_logout; exit 0" SIGINT SIGTERM
+
+	keepalive
+}
+
+main "$@"
