@@ -5,7 +5,6 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/forti_login myusername mypassword
-KillSignal=SIGINT
 Restart=always
 RestartSec=30
 
