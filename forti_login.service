@@ -1,9 +1,11 @@
 [Unit]
-Description=forti-login
+Description=forti_login
+After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/forti-login <myusername> <mypassword>
-ExecStop=/usr/bin/killall forti-login
+Type=simple
+ExecStart=/usr/bin/forti_login myusername mypassword
+KillSignal=SIGINT
 Restart=always
 RestartSec=30
 
