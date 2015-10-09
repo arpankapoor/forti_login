@@ -9,23 +9,23 @@ PASSWORD=""
 KEEPALIVE_URL=""
 
 cmd_available() {
-	command -v $1 &> /dev/null
+	command -v "$1" &> /dev/null
 }
 
 # Print arguments to stderr and exit
 fail() {
-	printf "$*\n" 1>&2
+	printf "%s\n" "$*" 1>&2
 	exit 1
 }
 
 get_effective_url() {
-	curl --location --output /dev/null --write-out "%{url_effective}" $1
+	curl --location --output /dev/null --write-out "%{url_effective}" "$1"
 }
 
 # Remove $2 from front and $3 from back of the string $1
 remove_substr() {
 	local tmp=${1##$2}
-	echo ${tmp%%$3}
+	echo "${tmp%%$3}"
 }
 
 # Get username and password from parameters/stdin
@@ -66,17 +66,18 @@ do_logout() {
 }
 
 keepalive() {
+	local html countdown
 	while true
 	do
-		local html=$(curl --output - "$KEEPALIVE_URL")
+		html=$(curl --output - "$KEEPALIVE_URL")
 		if [[ $? -ne 0 ]]
 		then
 			fail "Error in authentication refresh."
 		fi
 
-		local countdown=$(remove_substr "$html" \
-						"*var countDownTime=" \
-						" + 1;*")
+		countdown=$(remove_substr "$html" \
+					"*var countDownTime=" \
+					" + 1;*")
 		countdown=$((countdown - 60))
 
 		# Display a countdown if stdout is a terminal
@@ -92,11 +93,13 @@ keepalive() {
 }
 
 main() {
+	local google effective_url base_url magic html
+
 	# Do we have curl?
 	cmd_available "curl" || fail "Please install curl."
 
-	local google="www.google.com"
-	local effective_url=$(get_effective_url "$google")
+	google="www.google.com"
+	effective_url=$(get_effective_url "$google")
 
 	# Did we get redirected to the authentication page?
 	echo "$effective_url" | grep -q "fgtauth" || \
@@ -106,11 +109,11 @@ main() {
 	get_credentials "$@" || fail "\nFailed to get login credentials."
 
 	# Extract base URL and magic parameter
-	local base_url=$(remove_substr "$effective_url" "" "fgtauth*")
-	local magic=$(remove_substr "$effective_url" "*fgtauth\?" "" )
+	base_url=$(remove_substr "$effective_url" "" "fgtauth*")
+	magic=$(remove_substr "$effective_url" "*fgtauth\?" "" )
 
 	# POST form data to base_url
-	local html=$(curl --output - \
+	html=$(curl --output - \
 			--data-urlencode 4Tredir="$google" \
 			--data-urlencode magic="$magic" \
 			--data-urlencode username="$USERNAME" \
