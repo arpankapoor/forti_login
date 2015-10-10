@@ -20,7 +20,7 @@ fail() {
 }
 
 get_effective_url() {
-	curl --location --output /dev/null --write-out "%{url_effective}" "$1"
+	curl --location --write-out "%{url_effective}" "$1" &> /dev/null
 }
 
 # Is stdout open and refers to a terminal?
@@ -63,7 +63,7 @@ display_countdown() {
 
 do_logout() {
 	local logout_url=${KEEPALIVE_URL/keepalive/logout}
-	if curl --output /dev/null "$logout_url"
+	if curl "$logout_url" &> /dev/null
 	then
 		echo "" && echo "Logged out."
 	else
