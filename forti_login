@@ -20,7 +20,7 @@ fail() {
 }
 
 get_effective_url() {
-	curl --location --write-out "%{url_effective}" "$1" &> /dev/null
+	curl --location --output /dev/null --write-out "%{url_effective}" "$1"
 }
 
 # Is stdout open and refers to a terminal?
