@@ -22,6 +22,11 @@ get_effective_url() {
 	curl --location --output /dev/null --write-out "%{url_effective}" "$1"
 }
 
+# Is stdout open and refers to a terminal?
+is_stdout_term() {
+	[[ -t 1 ]]
+}
+
 # Remove $2 from front and $3 from back of the string $1
 remove_substr() {
 	local tmp=${1##$2}
@@ -81,7 +86,7 @@ keepalive() {
 		countdown=$((countdown - 60))
 
 		# Display a countdown if stdout is a terminal
-		if [[ -t 1 ]]
+		if is_stdout_term
 		then
 			display_countdown "$countdown" \
 				"Authentication refresh in" \
@@ -125,7 +130,7 @@ main() {
 	echo "$html" | grep -qi "failed" && fail "Authentication failed."
 
 	echo "Logged in."
-	if [[ -t 1 ]]
+	if is_stdout_term
 	then
 		echo "Press Ctrl-C to logout."
 	fi
