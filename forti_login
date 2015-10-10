@@ -62,11 +62,11 @@ display_countdown() {
 
 do_logout() {
 	local logout_url=${KEEPALIVE_URL/keepalive/logout}
-	if ! curl --output /dev/null "$logout_url"
+	if curl --output /dev/null "$logout_url"
 	then
-		fail "Error logging out."
-	else
 		echo "" && echo "Logged out."
+	else
+		fail "Error logging out."
 	fi
 }
 
