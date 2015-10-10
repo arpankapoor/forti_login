@@ -84,7 +84,7 @@ keepalive() {
 		countdown=$(remove_substr "$html" \
 					"*var countDownTime=" \
 					" + 1;*")
-		countdown=$((countdown - 60))
+		countdown=$((countdown - 5))
 
 		# Display a countdown if stdout is a terminal
 		if is_stdout_term
