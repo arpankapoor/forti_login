@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Enable curl alias
-alias curl="curl --insecure --silent --max-time 5"
+alias curl="curl --insecure --max-time 5 --silent --user-agent \
+	'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko'"
 shopt -s expand_aliases
 
 USERNAME=""
@@ -38,7 +39,7 @@ remove_substr() {
 get_credentials() {
 	if [[ $# -eq 0 ]]
 	then
-		read -r -p "Username: " USERNAME
+		read -rp "Username: " USERNAME
 		read -rst 30 -p "Password: " PASSWORD && echo ""
 	elif [[ $# -eq 1 ]]
 	then
@@ -112,7 +113,7 @@ main() {
 	# Do we have curl?
 	cmd_available "curl" || fail "Please install curl."
 
-	google="www.google.com"
+	google="www.google.com/"
 	effective_url=$(get_effective_url "$google")
 
 	# Did we get redirected to the authentication page?
