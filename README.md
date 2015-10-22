@@ -1,7 +1,7 @@
 # AIM
 Using the terminal to login into the NITC Firewall instead of *this:*
 
-![login pic](http://i.imgur.com/3tIwMt2.jpg)
+![login pic](https://i.imgur.com/qP1V15Y.png)
 
 # Dependencies
 - bash
