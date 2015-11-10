@@ -77,10 +77,7 @@ keepalive() {
 	while true
 	do
 		html=$(curl --output - "$KEEPALIVE_URL")
-		if [[ $? -ne 0 ]]
-		then
-			fail "Error in authentication refresh."
-		fi
+		[[ $? -ne 0 ]] && fail "Error in authentication refresh."
 
 		countdown=$(remove_substr "$html" \
 					"*var countDownTime=" \
@@ -139,10 +136,7 @@ main() {
 	echo "$html" | grep -qi "failed" && fail "Authentication failed."
 
 	echo "Logged in."
-	if is_stdout_term
-	then
-		echo "Press Ctrl-C to logout."
-	fi
+	is_stdout_term && echo "Press Ctrl-C to logout."
 
 	KEEPALIVE_URL=$(remove_substr "$html" "*location.href=\"" "\";*")
 
