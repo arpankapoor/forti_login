@@ -5,8 +5,8 @@ alias curl="curl --insecure --max-time 5 --silent --user-agent \
 	'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko'"
 shopt -s expand_aliases
 
-USERNAME=""
-PASSWORD=""
+# Associative array with user as key and password as value
+declare -A CREDENTIALS
 KEEPALIVE_URL=""
 SLEEP_PID=""
 
@@ -35,19 +35,48 @@ remove_substr() {
 	echo "${tmp%%$3}"
 }
 
-# Get username and password from parameters/stdin
+# Shuffle order of lines
+# http://mywiki.wooledge.org/BashFAQ/026
+randomize() {
+	while IFS='' read -r line
+	do
+		printf "%d\t%s\n" "$RANDOM" "$line"
+	done |
+	sort -n |
+	cut -f 2-
+}
+
+# File should contain tab delimited list of user and password pairs
+read_credentials_from_file() {
+	local filename user password
+	filename="$1"
+
+	while IFS=$'\t' read -r user password
+	do
+		CREDENTIALS[$user]=$password
+	done < <(randomize < "$filename")
+}
+
+# Get user and password from parameters/stdin/file
 get_credentials() {
-	if [[ $# -eq 0 ]]
+	local filename user password
+	while getopts ":u:p:f:" opt
+	do
+		case $opt in
+			u) user=$OPTARG ;;
+			p) password=$OPTARG ;;
+			f) filename=$OPTARG ;;
+		esac
+	done
+
+	# Read from file provided it exists
+	if [[ -n $filename ]] && [[ -f $filename ]]
 	then
-		read -rp "Username: " USERNAME
-		read -rst 30 -p "Password: " PASSWORD && echo ""
-	elif [[ $# -eq 1 ]]
-	then
-		USERNAME=$1
-		read -rst 30 -p "Password: " PASSWORD && echo ""
+		read_credentials_from_file "$filename"
 	else
-		USERNAME=$1
-		PASSWORD=$2
+		[[ -z $user ]] && read -rp "Username: " user
+		[[ -z $password ]] && read -rsp "Password: " password && echo
+		CREDENTIALS[$user]=$password
 	fi
 }
 
@@ -105,7 +134,7 @@ cleanup() {
 }
 
 main() {
-	local google effective_url base_url magic html
+	local google effective_url base_url magic html user logged_in
 
 	# Do we have curl?
 	cmd_available "curl" || fail "Please install curl."
@@ -124,18 +153,28 @@ main() {
 	base_url=$(remove_substr "$effective_url" "" "fgtauth*")
 	magic=$(remove_substr "$effective_url" "*fgtauth\?" "" )
 
-	# POST form data to base_url
-	html=$(curl --output - \
+	for user in "${!CREDENTIALS[@]}"
+	do
+		# POST form data to base_url
+		html=$(curl --output - \
 			--data-urlencode 4Tredir="$google" \
 			--data-urlencode magic="$magic" \
-			--data-urlencode username="$USERNAME" \
-			--data-urlencode password="$PASSWORD" \
+			--data-urlencode username="$user" \
+			--data-urlencode password="${CREDENTIALS[$user]}" \
 			"$base_url")
 
-	# Failed?
-	echo "$html" | grep -qi "failed" && fail "Authentication failed."
+		# Failed?
+		if echo "$html" | grep -qi "failed"
+		then
+			echo "Authentication failed with username $user." 1>&2
+		else
+			echo "Logged in with username $user."
+			logged_in=1
+			break
+		fi
+	done
 
-	echo "Logged in."
+	[[ -z $logged_in ]] && fail "Failed."
 	is_stdout_term && echo "Press Ctrl-C to logout."
 
 	KEEPALIVE_URL=$(remove_substr "$html" "*location.href=\"" "\";*")

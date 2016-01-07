@@ -10,10 +10,13 @@ Using the terminal to login into the NITC Firewall instead of *this:*
 # Installation
     git clone https://github.com/arpankapoor/forti_login.git
     cd forti_login
-    # make install
+    sudo make install
 
 # Usage
-    forti_login [<username>] [<password>]
+    forti_login [-u <username>] [-p <password>] [-f <filename>]
+
+Supplied file should contain username and password on each line delimited by
+`Tab`.
 
 # Systemd service
 Set the username and password in `/usr/lib/systemd/system/forti_login.service`
