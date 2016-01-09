@@ -15,16 +15,12 @@ Using the terminal to login into the NITC Firewall instead of *this:*
 # Usage
     forti_login [-u <username>] [-p <password>] [-f <filename>]
 
-Supplied file should contain username and password on each line delimited by
-`Tab`.
+Each line of given file should contain `Tab` delimited username and password.
 
-# Systemd service
-Set the username and password in `/usr/lib/systemd/system/forti_login.service`
+# Service files
+Upstart and systemd service files have been included.
+Edit `/etc/init/forti_login.conf` OR
+`/usr/lib/systemd/system/forti_login.service` to add your credentials.
 
-## Start service immediately:
-
-    # systemctl start forti_login.service
-
-## Start on boot:
-
-    # systemctl enable forti_login.service
+Start with `sudo start forti_login` (Upstart) OR
+`sudo systemctl start forti_login.service` (systemd).
