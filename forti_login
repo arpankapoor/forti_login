@@ -176,6 +176,7 @@ main() {
 
 	[[ -z $logged_in ]] && fail "Failed."
 	is_stdout_term && echo "Press Ctrl-C to logout."
+	unset CREDENTIALS
 
 	KEEPALIVE_URL=$(remove_substr "$html" "*location.href=\"" "\";*")
 
