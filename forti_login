@@ -80,17 +80,6 @@ get_credentials() {
 	fi
 }
 
-# Display a countdown for $1 seconds with $2 prefixed and $3 suffixed
-display_countdown() {
-	local secs=$1
-	while [[ $secs -gt 0 ]]
-	do
-		echo -ne "\033[0K\r$2 $secs $3"
-		sleep 1
-		: $((--secs))
-	done
-}
-
 do_logout() {
 	local logout_url=${KEEPALIVE_URL/keepalive/logout}
 	if curl "$logout_url" &> /dev/null
@@ -113,16 +102,8 @@ keepalive() {
 					" + 1;*")
 		countdown=$((countdown - 5))
 
-		# Display a countdown if stdout is a terminal
-		if is_stdout_term
-		then
-			display_countdown "$countdown" \
-				"Authentication refresh in" \
-				"seconds."
-		else
-			sleep "$countdown" & SLEEP_PID=$!
-			wait "$SLEEP_PID"
-		fi
+		sleep "$countdown" & SLEEP_PID=$!
+		wait "$SLEEP_PID"
 	done
 }
 
