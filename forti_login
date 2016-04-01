@@ -46,12 +46,12 @@ randomize() {
 	cut -f 2-
 }
 
-# File should contain tab delimited list of user and password pairs
+# File should contain whitespace delimited list of user and password pairs
 read_credentials_from_file() {
 	local filename user password
 	filename="$1"
 
-	while IFS=$'\t' read -r user password
+	while read -r user password
 	do
 		CREDENTIALS[$user]=$password
 	done < <(randomize < "$filename")
