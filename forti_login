@@ -9,6 +9,7 @@ shopt -s expand_aliases
 declare -A CREDENTIALS
 KEEPALIVE_URL=""
 SLEEP_PID=""
+USAGE="Usage: $(basename "$0") [-u <username>] [-p <password>] [-f <credentials_filename>]"
 
 cmd_available() {
 	command -v "$1" &> /dev/null
@@ -69,15 +70,16 @@ get_credentials() {
 		esac
 	done
 
-	# Read from file provided it exists
-	if [[ -n $filename ]] && [[ -f $filename ]]
+	if [[ -n $user ]] && [[ -n $password ]]
 	then
-		read_credentials_from_file "$filename"
-	else
-		[[ -z $user ]] && read -rp "Username: " user
-		[[ -z $password ]] && read -rsp "Password: " password && echo
 		CREDENTIALS[$user]=$password
+	elif [[ -n $filename ]] && [[ -f $filename ]]
+	then
+		# Read from file provided it exists
+		read_credentials_from_file "$filename"
 	fi
+
+	[[ ${#CREDENTIALS[@]} -eq 0 ]] && return 1
 }
 
 do_logout() {
@@ -128,7 +130,7 @@ main() {
 		fail "Did NOT get redirected to authentication page."
 
 	# Get login credentials
-	get_credentials "$@" || fail "\nFailed to get login credentials."
+	get_credentials "$@" || fail "$USAGE"
 
 	# Extract base URL and magic parameter
 	base_url=$(remove_substr "$effective_url" "" "fgtauth*")
